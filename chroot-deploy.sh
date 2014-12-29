@@ -25,40 +25,91 @@ fi
 
 # TODO: We need proper error handling, i.e., we should fail on all
 #       errors ('set -e') and undo all previous modifications.
-DEPLOY_DIR="/tmp"
+TMP_DIR="/tmp"
+DEPLOY_DIR="${TMP_DIR}"
 ARCHIVE=$(realpath "${1}")
 CHROOT="${DEPLOY_DIR}/$(basename --suffix .tar.bz2 ${ARCHIVE})"
+BASE_SELF=$(basename "${0}" | sed 's![.]!_!g')
+BASE_ARCHIVE=$(echo "${ARCHIVE}" | sed 's![/.]!_!g')
+REFERENCE_FILE="${TMP_DIR}/${BASE_SELF}_${BASE_ARCHIVE}"
 
-if [ -d "${CHROOT}" ]; then
-  echo "Directory already exists: ${CHROOT}."
+test -f "${REFERENCE_FILE}" && REF_FILE_EXISTS=1 || REF_FILE_EXISTS=0
+test -d "${CHROOT}"         && ROOT_DIR_EXISTS=1 || ROOT_DIR_EXISTS=0
+
+incRefCount() {
+  # TODO: Increment is not atomic meaning we can miss updates here or cause
+  #       missed updates ourselves. The approach is considered okay for the
+  #       time being since usually this script is not invoked in parallel but
+  #       overall it is better to be safe and require true atomicity somehow.
+  if [ ${REF_FILE_EXISTS} -eq 0 ]; then
+    echo 1 > "${REFERENCE_FILE}"
+    echo 1
+  else
+    REFS=$(cat "${REFERENCE_FILE}")
+    REFS=$((${REFS}+1))
+    echo "${REFS}" > "${REFERENCE_FILE}"
+    echo "${REFS}"
+  fi
+}
+
+decAndGetRefCount() {
+  REFS=$(cat "${REFERENCE_FILE}")
+  REFS=$((${REFS}-1))
+
+  if [ ${REFS} -eq 0 ]; then
+    rm "${REFERENCE_FILE}"
+  else
+    echo "${REFS}" > "${REFERENCE_FILE}"
+  fi
+  echo "${REFS}"
+}
+
+
+if [ "${REF_FILE_EXISTS}" -ne 0 -a "${ROOT_DIR_EXISTS}" -eq 0 ]; then
+  echo "Found reference file but ${CHROOT} directory is missing."
   echo "Stopping."
   exit 1
 fi
 
-mkdir -p "${CHROOT}"
-cd "${CHROOT}"
+if [ "${REF_FILE_EXISTS}" -eq 0 -a "${ROOT_DIR_EXISTS}" -ne 0 ]; then
+  echo "Found ${CHROOT} directory but reference file is missing."
+  echo "Stopping."
+  exit 1
+fi
 
-# Note: We assume the package contains no actual (named) root directory.
-tar -xjf "${ARCHIVE}"
+REFS=$(incRefCount)
+if [ ${REFS} -eq 1 ]; then
+  mkdir -p "${CHROOT}"
+  cd "${CHROOT}"
 
-mkdir "${CHROOT}/dev"
-mkdir "${CHROOT}/sys"
-mkdir "${CHROOT}/usr/portage"
+  # Note: We assume the package contains no actual (named) root
+  #       directory as is the case for Gentoo's stage3 files.
+  tar -xjpf "${ARCHIVE}"
 
-cp -L /etc/resolv.conf ${CHROOT}/etc/
+  mkdir "${CHROOT}/dev"
+  mkdir "${CHROOT}/sys"
+  mkdir "${CHROOT}/usr/portage"
 
-mount -t proc proc ${CHROOT}/proc
-mount --bind /sys ${CHROOT}/sys
-mount --bind /dev ${CHROOT}/dev
-mount --bind /usr/portage ${CHROOT}/usr/portage
-mount --bind /tmp ${CHROOT}/tmp
+  cp -L /etc/resolv.conf ${CHROOT}/etc/
+
+  mount -t proc proc ${CHROOT}/proc
+  mount --bind /sys ${CHROOT}/sys
+  mount --bind /dev ${CHROOT}/dev
+  mount --bind /usr/portage ${CHROOT}/usr/portage
+  mount --bind /tmp ${CHROOT}/tmp
+fi
 
 chroot ${CHROOT} /bin/su --login deso -c '/bin/env PS1="(chroot) \[\033[01;32m\]\u@\h\[\033[01;34m\] \w \$\[\033[00m\] " bash --norc -i'
 
-umount ${CHROOT}/tmp
-umount ${CHROOT}/usr/portage
-umount ${CHROOT}/proc
-umount ${CHROOT}/sys
-umount ${CHROOT}/dev
+# Check if we are the last one in the chroot and if so unmount everything and
+# delete the directory.
+REFS=$(decAndGetRefCount)
+if [ ${REFS} -eq 0 ]; then
+  umount ${CHROOT}/tmp
+  umount ${CHROOT}/usr/portage
+  umount ${CHROOT}/proc
+  umount ${CHROOT}/sys
+  umount ${CHROOT}/dev
 
-rm -rf "${CHROOT}"
+  rm -rf "${CHROOT}"
+fi
