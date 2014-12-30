@@ -111,5 +111,9 @@ if [ ${REFS} -eq 0 ]; then
   umount ${CHROOT}/sys
   umount ${CHROOT}/dev
 
-  rm -rf "${CHROOT}"
+  # Note that the --one-file-system option does not in general care
+  # about bind mounts but only about true file system borders. I.e., if
+  # there does still exist a bind mount in the directory it will be not
+  # be deleted if and only if it is located on a different file system.
+  rm --one-file-system -rf "${CHROOT}"
 fi
