@@ -32,15 +32,29 @@ CHROOT="${DEPLOY_DIR}/$(basename --suffix .tar.bz2 ${ARCHIVE})"
 BASE_SELF=$(basename "${0}" | sed 's![.]!_!g')
 BASE_ARCHIVE=$(echo "${ARCHIVE}" | sed 's![/.]!_!g')
 REFERENCE_FILE="${TMP_DIR}/${BASE_SELF}_${BASE_ARCHIVE}"
+REFERENCE_LOCK="${REFERENCE_FILE}.lck"
 
 test -f "${REFERENCE_FILE}" && REF_FILE_EXISTS=1 || REF_FILE_EXISTS=0
 test -d "${CHROOT}"         && ROOT_DIR_EXISTS=1 || ROOT_DIR_EXISTS=0
 
+atomicTouch() {
+  mkdir "${1}" &> /dev/null
+  echo "${?}"
+}
+
+lock() {
+  while [ $(atomicTouch "${1}") -ne 0 ]; do
+    sleep 1
+  done
+}
+
+unlock() {
+  rmdir "${1}"
+}
+
 incRefCount() {
-  # TODO: Increment is not atomic meaning we can miss updates here or cause
-  #       missed updates ourselves. The approach is considered okay for the
-  #       time being since usually this script is not invoked in parallel but
-  #       overall it is better to be safe and require true atomicity somehow.
+  lock "${REFERENCE_LOCK}"
+
   if [ ${REF_FILE_EXISTS} -eq 0 ]; then
     echo 1 > "${REFERENCE_FILE}"
     echo 1
@@ -50,9 +64,13 @@ incRefCount() {
     echo "${REFS}" > "${REFERENCE_FILE}"
     echo "${REFS}"
   fi
+
+  unlock "${REFERENCE_LOCK}"
 }
 
 decAndGetRefCount() {
+  lock "${REFERENCE_LOCK}"
+
   REFS=$(cat "${REFERENCE_FILE}")
   REFS=$((${REFS}-1))
 
@@ -62,6 +80,8 @@ decAndGetRefCount() {
     echo "${REFS}" > "${REFERENCE_FILE}"
   fi
   echo "${REFS}"
+
+  unlock "${REFERENCE_LOCK}"
 }
 
 
