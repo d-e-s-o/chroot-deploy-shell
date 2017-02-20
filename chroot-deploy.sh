@@ -17,9 +17,30 @@
 # *   along with this program.  If not, see <http://www.gnu.org/licenses/>. *
 # ***************************************************************************/
 
+GETOPT="/usr/bin/getopt"
+SHORT_OPTS="u:"
+LONG_OPTS="user:"
+USER=""
+
+RESULT=$("${GETOPT}" --options="${SHORT_OPTS}" --longoptions="${LONG_OPTS}" -- "${@}")
+
+# If getopt failed we exit here. It will have printed a reasonable error
+# message.
+[ $? != 0 ] && exit 1
+
+eval set -- "${RESULT}"
+
+while true; do
+  case "$1" in
+    -u | --user ) USER="${2}"; shift 2 ;;
+    -- ) shift; break ;;
+    * ) break ;;
+  esac
+done
+
 if [ $# -ne 1 ]; then
   echo "Invalid parameter count."
-  echo "Usage: ${0} <chroot-tar-bz2-archive>"
+  echo "Usage: ${0} [-u/--user USER] <chroot-tar-bz2-archive>"
   exit 1
 fi
 
@@ -119,7 +140,13 @@ if [ ${REFS} -eq 1 ]; then
   mount --bind /tmp ${CHROOT}/tmp
 fi
 
-chroot ${CHROOT} /bin/su --login deso -c '/bin/env PS1="(chroot) \[\033[01;32m\]\u@\h\[\033[01;34m\] \w \$\[\033[00m\] " bash --norc -i'
+if [ -n "${USER}" ]; then
+  ARGS="/bin/su --login ${USER}"
+else
+  ARGS=/bin/bash
+fi
+
+chroot ${CHROOT} ${ARGS} -c '/bin/env PS1="(chroot) \[\033[01;32m\]\u@\h\[\033[01;34m\] \w \$\[\033[00m\] " bash --norc -i'
 
 # Check if we are the last one in the chroot and if so unmount everything and
 # delete the directory.
