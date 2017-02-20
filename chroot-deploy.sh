@@ -1,7 +1,7 @@
 #!/bin/bash
 
 #/***************************************************************************
-# *   Copyright (C) 2014 Daniel Mueller (deso@posteo.net)                   *
+# *   Copyright (C) 2014,2017 Daniel Mueller (deso@posteo.net)              *
 # *                                                                         *
 # *   This program is free software: you can redistribute it and/or modify  *
 # *   it under the terms of the GNU General Public License as published by  *
@@ -106,9 +106,9 @@ if [ ${REFS} -eq 1 ]; then
   #       directory as is the case for Gentoo's stage3 files.
   tar -xjpf "${ARCHIVE}"
 
-  mkdir "${CHROOT}/dev"
-  mkdir "${CHROOT}/sys"
-  mkdir "${CHROOT}/usr/portage"
+  mkdir -p "${CHROOT}/dev"
+  mkdir -p "${CHROOT}/sys"
+  mkdir -p "${CHROOT}/usr/portage"
 
   cp -L /etc/resolv.conf ${CHROOT}/etc/
 
