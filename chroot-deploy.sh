@@ -18,8 +18,8 @@
 # ***************************************************************************/
 
 GETOPT="/usr/bin/getopt"
-SHORT_OPTS="u:"
-LONG_OPTS="user:"
+SHORT_OPTS="ku:"
+LONG_OPTS="keep,user:"
 USER=""
 
 RESULT=$("${GETOPT}" --options="${SHORT_OPTS}" --longoptions="${LONG_OPTS}" -- "${@}")
@@ -32,6 +32,7 @@ eval set -- "${RESULT}"
 
 while true; do
   case "$1" in
+    -k | --keep ) KEEP="1"; shift 1 ;;
     -u | --user ) USER="${2}"; shift 2 ;;
     -- ) shift; break ;;
     * ) break ;;
@@ -40,7 +41,7 @@ done
 
 if [ $# -ne 1 ]; then
   echo "Invalid parameter count."
-  echo "Usage: ${0} [-u/--user USER] <chroot-tar-bz2-archive>"
+  echo "Usage: ${0} [-k/--keep] [-u/--user USER] <chroot-tar-bz2-archive>"
   exit 1
 fi
 
@@ -158,9 +159,12 @@ if [ ${REFS} -eq 0 ]; then
   umount ${CHROOT}/sys
   umount ${CHROOT}/dev
 
-  # Note that the --one-file-system option does not in general care
-  # about bind mounts but only about true file system borders. I.e., if
-  # there does still exist a bind mount in the directory it will be not
-  # be deleted if and only if it is located on a different file system.
-  rm --one-file-system -rf "${CHROOT}"
+  if [ -z "${KEEP}" ]; then
+    # Note that the --one-file-system option does not in general care
+    # about bind mounts but only about true file system borders. I.e.,
+    # if there does still exist a bind mount in the directory it will be
+    # not be deleted if and only if it is located on a different file
+    # system.
+    rm --one-file-system -rf "${CHROOT}"
+  fi
 fi
