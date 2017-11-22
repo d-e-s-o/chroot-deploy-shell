@@ -17,6 +17,9 @@
 # *   along with this program.  If not, see <http://www.gnu.org/licenses/>. *
 # ***************************************************************************/
 
+# A tarball that can be deployed by the script can be created via:
+# tar -cpjvf /tmp/gentoo-$(date '+%Y%m%d')-....tar.bz2 -C /tmp/stage3-*/ .
+
 GETOPT="/usr/bin/getopt"
 SHORT_OPTS="ru:"
 LONG_OPTS="remove,user:"
