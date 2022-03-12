@@ -111,15 +111,10 @@ decAndGetRefCount() {
 
 
 if [ "${REF_FILE_EXISTS}" -ne 0 -a "${ROOT_DIR_EXISTS}" -eq 0 ]; then
-  echo "Found reference file but ${CHROOT} directory is missing."
-  echo "Stopping."
-  exit 1
-fi
-
-if [ "${REF_FILE_EXISTS}" -eq 0 -a "${ROOT_DIR_EXISTS}" -ne 0 ]; then
-  echo "Found ${CHROOT} directory but reference file is missing."
-  echo "Stopping."
-  exit 1
+  # If a reference file exists but there is no root directory we must be
+  # dealing with a stale file. Just remove it and move on.
+  rm "${REFERENCE_FILE}"
+  REF_FILE_EXISTS=0
 fi
 
 REFS=$(incRefCount)
@@ -127,9 +122,15 @@ if [ ${REFS} -eq 1 ]; then
   mkdir -p "${CHROOT}"
   cd "${CHROOT}"
 
-  # Note: We assume the package contains no actual (named) root
-  #       directory as is the case for Gentoo's stage3 files.
-  tar --xz -xpf "${ARCHIVE}"
+  # Only extract the archive if the chroot directory does not exist.
+  # That is to cater to the case where a user just exited all shells but
+  # kept the chroot around for later. We do *not* want to overwrite its
+  # contents.
+  if [ "${ROOT_DIR_EXISTS}" -eq 0 ]; then
+    # Note: We assume the package contains no actual (named) root
+    #       directory as is the case for Gentoo's stage3 files.
+    tar --xz -xpf "${ARCHIVE}"
+  fi
 
   mkdir -p "${CHROOT}/dev"
   mkdir -p "${CHROOT}/sys"
