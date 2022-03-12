@@ -146,13 +146,10 @@ if [ ${REFS} -eq 1 ]; then
   mount --bind /run ${CHROOT}/run
 fi
 
-if [ -n "${USER}" ]; then
-  ARGS="/bin/su --login ${USER}"
-else
-  ARGS=/bin/bash
-fi
+ARGS="/bin/su --login ${USER:-root}"
+CMD='/bin/env PS1="(chroot) \[\033[01;32m\]\u@\h\[\033[01;34m\] \w \$\[\033[00m\] " bash --norc -i'
 
-chroot ${CHROOT} ${ARGS} -c '/bin/env PS1="(chroot) \[\033[01;32m\]\u@\h\[\033[01;34m\] \w \$\[\033[00m\] " bash --norc -i'
+chroot ${CHROOT} ${ARGS} -c "${CMD}"
 
 # Check if we are the last one in the chroot and if so unmount everything and
 # delete the directory.
