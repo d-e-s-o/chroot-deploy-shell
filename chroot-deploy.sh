@@ -142,6 +142,7 @@ if [ ${REFS} -eq 1 ]; then
   mount --bind /dev ${CHROOT}/dev
   mount --bind /usr/portage ${CHROOT}/usr/portage
   mount --bind /tmp ${CHROOT}/tmp
+  mount --bind /run ${CHROOT}/run
 fi
 
 if [ -n "${USER}" ]; then
@@ -156,6 +157,7 @@ chroot ${CHROOT} ${ARGS} -c '/bin/env PS1="(chroot) \[\033[01;32m\]\u@\h\[\033[0
 # delete the directory.
 REFS=$(decAndGetRefCount)
 if [ ${REFS} -eq 0 ]; then
+  umount ${CHROOT}/run
   umount ${CHROOT}/tmp
   umount ${CHROOT}/usr/portage
   umount ${CHROOT}/proc
