@@ -1,7 +1,7 @@
 #!/bin/bash
 
 #/***************************************************************************
-# *   Copyright (C) 2014,2017 Daniel Mueller (deso@posteo.net)              *
+# *   Copyright (C) 2014-2022 Daniel Mueller (deso@posteo.net)              *
 # *                                                                         *
 # *   This program is free software: you can redistribute it and/or modify  *
 # *   it under the terms of the GNU General Public License as published by  *
@@ -18,7 +18,7 @@
 # ***************************************************************************/
 
 # A tarball that can be deployed by the script can be created via:
-# tar -cpjvf /tmp/gentoo-$(date '+%Y%m%d')-....tar.bz2 -C /tmp/stage3-*/ .
+# tar --xz -cpvf /tmp/gentoo-$(date '+%Y%m%d')-....tar.xz -C /tmp/stage3-*/ .
 
 GETOPT="/usr/bin/getopt"
 SHORT_OPTS="ru:"
@@ -44,7 +44,7 @@ done
 
 if [ $# -ne 1 ]; then
   echo "Invalid parameter count."
-  echo "Usage: ${0} [-r/--remove] [-u/--user USER] <chroot-tar-bz2-archive>"
+  echo "Usage: ${0} [-r/--remove] [-u/--user USER] <chroot-tar-xz-archive>"
   exit 1
 fi
 
@@ -53,7 +53,7 @@ fi
 TMP_DIR="/tmp"
 DEPLOY_DIR="${TMP_DIR}"
 ARCHIVE=$(realpath "${1}")
-CHROOT="${DEPLOY_DIR}/$(basename --suffix .tar.bz2 ${ARCHIVE})"
+CHROOT="${DEPLOY_DIR}/$(basename --suffix .tar.xz ${ARCHIVE})"
 BASE_SELF=$(basename "${0}" | sed 's![.]!_!g')
 BASE_ARCHIVE=$(echo "${ARCHIVE}" | sed 's![/.]!_!g')
 REFERENCE_FILE="${TMP_DIR}/${BASE_SELF}_${BASE_ARCHIVE}"
@@ -129,7 +129,7 @@ if [ ${REFS} -eq 1 ]; then
 
   # Note: We assume the package contains no actual (named) root
   #       directory as is the case for Gentoo's stage3 files.
-  tar -xjpf "${ARCHIVE}"
+  tar --xz -xpf "${ARCHIVE}"
 
   mkdir -p "${CHROOT}/dev"
   mkdir -p "${CHROOT}/sys"
