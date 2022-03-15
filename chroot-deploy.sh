@@ -134,7 +134,7 @@ if [ ${REFS} -eq 1 ]; then
 
   mkdir -p "${CHROOT}/dev"
   mkdir -p "${CHROOT}/sys"
-  mkdir -p "${CHROOT}/usr/portage"
+  mkdir -p "${CHROOT}/var/db/repos"
   mkdir -p "${CHROOT}/tmp"
   mkdir -p "${CHROOT}/run"
 
@@ -143,7 +143,7 @@ if [ ${REFS} -eq 1 ]; then
   mount -t proc proc ${CHROOT}/proc
   mount --bind /sys ${CHROOT}/sys
   mount --bind /dev ${CHROOT}/dev
-  mount --bind /usr/portage ${CHROOT}/usr/portage
+  mount --bind /var/db/repos ${CHROOT}/var/db/repos
   mount --bind /tmp ${CHROOT}/tmp
   mount --bind /run ${CHROOT}/run
 fi
@@ -159,7 +159,7 @@ REFS=$(decAndGetRefCount)
 if [ ${REFS} -eq 0 ]; then
   umount ${CHROOT}/run
   umount ${CHROOT}/tmp
-  umount ${CHROOT}/usr/portage
+  umount ${CHROOT}/var/db/repos
   umount ${CHROOT}/proc
   umount ${CHROOT}/sys
   umount ${CHROOT}/dev
