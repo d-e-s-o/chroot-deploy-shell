@@ -135,6 +135,8 @@ if [ ${REFS} -eq 1 ]; then
   mkdir -p "${CHROOT}/dev"
   mkdir -p "${CHROOT}/sys"
   mkdir -p "${CHROOT}/usr/portage"
+  mkdir -p "${CHROOT}/tmp"
+  mkdir -p "${CHROOT}/run"
 
   cp -L /etc/resolv.conf ${CHROOT}/etc/
 
