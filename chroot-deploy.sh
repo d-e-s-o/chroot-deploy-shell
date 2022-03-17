@@ -21,9 +21,11 @@
 # tar --xz -cpvf /tmp/gentoo-$(date '+%Y%m%d')-....tar.xz -C /tmp/stage3-*/ .
 
 GETOPT="/usr/bin/getopt"
-SHORT_OPTS="ru:"
-LONG_OPTS="remove,user:"
+SHORT_OPTS="c:ru:"
+LONG_OPTS="command:,remove,user:"
+COMMAND=""
 USER=""
+REMOVE=""
 
 RESULT=$("${GETOPT}" --options="${SHORT_OPTS}" --longoptions="${LONG_OPTS}" -- "${@}")
 
@@ -35,6 +37,7 @@ eval set -- "${RESULT}"
 
 while true; do
   case "$1" in
+    -c | --command ) COMMAND="${2}"; shift 2 ;;
     -r | --remove ) REMOVE="1"; shift 1 ;;
     -u | --user ) USER="${2}"; shift 2 ;;
     -- ) shift; break ;;
@@ -44,7 +47,7 @@ done
 
 if [ $# -ne 1 ]; then
   echo "Invalid parameter count."
-  echo "Usage: ${0} [-r/--remove] [-u/--user USER] <chroot-tar-xz-archive>"
+  echo "Usage: ${0} [-c/--command COMMAND] [-r/--remove] [-u/--user USER] <chroot-tar-xz-archive>"
   exit 1
 fi
 
@@ -149,9 +152,12 @@ if [ ${REFS} -eq 1 ]; then
 fi
 
 ARGS="/bin/su --login ${USER:-root}"
-CMD='/bin/env PS1="(chroot) \[\033[01;32m\]\u@\h\[\033[01;34m\] \w \$\[\033[00m\] " bash --norc -i'
+if [ -z "${COMMAND}" ]; then
+  # If no command was provided we just spawn a shell.
+  COMMAND='/bin/env PS1="(chroot) \[\033[01;32m\]\u@\h\[\033[01;34m\] \w \$\[\033[00m\] " bash --norc -i'
+fi
 
-chroot ${CHROOT} ${ARGS} --session-command "${CMD}"
+chroot ${CHROOT} ${ARGS} --session-command "${COMMAND}"
 
 # Check if we are the last one in the chroot and if so unmount everything and
 # delete the directory.
